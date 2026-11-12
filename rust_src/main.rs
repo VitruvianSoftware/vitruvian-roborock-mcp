@@ -19,9 +19,9 @@
 // SOFTWARE.
 // SPDX-License-Identifier: MIT
 
-//! `rrctl-rs`: native Rust CLI entrypoint for `vitruvian-roborock`.
+//! `rrctl`: native Rust CLI entrypoint for `vitruvian-roborock-mcp`.
 
 fn main() {
     let args: Vec<String> = std::env::args().skip(1).collect();
-    std::process::exit(roborock_rs_lib::cli::run(&args));
+    std::process::exit(vitruvian_roborock_mcp_rs_lib::cli::run(&args));
 }

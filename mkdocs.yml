@@ -18,10 +18,10 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-site_name: roborock
+site_name: Vitruvian Roborock MCP
 site_description: Local daemon, CLI and MCP server for Roborock vacuums
 repo_url: https://github.com/VitruvianSoftware/vitruvian-core
-edit_uri: edit/main/apps/mcp/roborock/docs
+edit_uri: edit/main/apps/mcp/vitruvian-roborock-mcp/docs
 docs_dir: docs
 plugins:
   - techdocs-core

@@ -21,11 +21,11 @@
 # The Roborock daemon, CLI (rrctl) and MCP server.
 #
 # Its own workspace and its own Cargo.lock, apart from the root one, for the
-# same reason as apps/mcp/slack/rs: the standalone mirror (mcp-roborock)
-# receives apps/mcp/roborock alone, and `cargo install --locked` there needs
+# same reason as apps/mcp/vitruvian-slack-mcp/rs: the standalone mirror (vitruvian-roborock-mcp)
+# receives apps/mcp/vitruvian-roborock-mcp alone, and `cargo install --locked` there needs
 # the lock to live in here. Bazel reads the same lock through the
-# @mcp_roborock_crates hub (MODULE.bazel). Re-lock with
-#   bazel run //tools/crates:lock -- --dir apps/mcp/roborock
+# @vitruvian_roborock_mcp_crates hub (MODULE.bazel). Re-lock with
+#   bazel run //tools/crates:lock -- --dir apps/mcp/vitruvian-roborock-mcp
 #
 # Network and crypto are vetted crates, never hand-rolled primitives: rustls
 # (ring) for the MQTT and HTTPS TLS, ureq for HTTPS, RustCrypto for the AES
@@ -34,7 +34,7 @@
 [workspace]
 
 [package]
-name = "vitruvian-roborock"
+name = "vitruvian-roborock-mcp"
 version = "0.2.0"
 edition = "2021"
 rust-version = "1.75"
@@ -44,7 +44,7 @@ repository = "https://github.com/VitruvianSoftware/mcp-roborock"
 publish = false
 
 [lib]
-name = "roborock_rs_lib"
+name = "vitruvian_roborock_mcp_rs_lib"
 path = "rust_src/lib.rs"
 
 [[bin]]

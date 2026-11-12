@@ -37,28 +37,8 @@ use std::sync::{Arc, Condvar, Mutex};
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 
-pub const SERVICE_NAME: &str = "vitruvian-roborock";
-/// Sent in `/healthz` so a client can tell this daemon from the older Python
-/// one, which answers with the same service name on the same port.
+pub const SERVICE_NAME: &str = "vitruvian-roborock-mcp";
 pub const IMPLEMENTATION: &str = "rust";
-
-/// What to tell someone whose port is held by the Python daemon.
-pub fn legacy_daemon_message(port: u16, health: &Map<String, Value>) -> String {
-    let version = health
-        .get("version")
-        .and_then(|v| v.as_str())
-        .unwrap_or("unknown");
-    let pid = health
-        .get("pid")
-        .and_then(|v| v.as_u64())
-        .map(|p| format!(", pid {p}"))
-        .unwrap_or_default();
-    format!(
-        "The daemon on port {port} is the older Python vitruvian-roborock ({version}{pid}), which this rrctl does not use. \
-Stop it with `rrctl daemon stop`, remove the Python tool with `uv tool uninstall vitruvian-roborock`, \
-then restart your agent sessions so they start the Rust rrctl."
-    )
-}
 pub const DASHBOARD_CSP: &str = "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
 const HEARTBEAT_DURATION: Duration = Duration::from_secs(15);
 
@@ -332,23 +312,12 @@ impl DaemonClient {
         })
     }
 
-    fn service_health(&self) -> Option<Map<String, Value>> {
-        let doc = self.request_json("GET", "/healthz", None, false).ok()?;
-        (doc.get("service").and_then(|v| v.as_str()) == Some(SERVICE_NAME)).then_some(doc)
-    }
-
-    /// `/healthz` of a daemon this rrctl can use: ours, the Rust one.
+    /// `/healthz` of a running `vitruvian-roborock-mcp` daemon.
     pub fn health(&self) -> Option<Map<String, Value>> {
-        self.service_health().filter(|doc| {
-            doc.get("implementation").and_then(|v| v.as_str()) == Some(IMPLEMENTATION)
-        })
-    }
-
-    /// `/healthz` of the older Python daemon, if that is what holds the port.
-    pub fn legacy_health(&self) -> Option<Map<String, Value>> {
-        self.service_health().filter(|doc| {
-            doc.get("implementation").and_then(|v| v.as_str()) != Some(IMPLEMENTATION)
-        })
+        let doc = self.request_json("GET", "/healthz", None, false).ok()?;
+        (doc.get("service").and_then(|v| v.as_str()) == Some(SERVICE_NAME)
+            && doc.get("implementation").and_then(|v| v.as_str()) == Some(IMPLEMENTATION))
+        .then_some(doc)
     }
 
     pub fn status(&self) -> Result<Map<String, Value>, ClientError> {
@@ -449,12 +418,6 @@ where
         DaemonClient::new(port, None, None).map_err(|e| DaemonUnavailable::new(e.to_string()))?;
     if client.health().is_some() {
         return Ok(client);
-    }
-    if let Some(doc) = client.legacy_health() {
-        return Err(DaemonUnavailable::new(legacy_daemon_message(
-            client.port,
-            &doc,
-        )));
     }
     if port_taken(client.port) {
         return Err(DaemonUnavailable::new(format!(

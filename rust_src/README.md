@@ -1,7 +1,7 @@
 # Rust Src
 
 ## Overview
-Component package providing implementation for `apps/mcp/roborock/rust_src`.
+Component package providing implementation for `apps/mcp/vitruvian-roborock-mcp/rust_src`.
 
 ## Interface
 - `[auth.rs:SETUP_HINT]`
@@ -50,4 +50,4 @@ Component package providing implementation for `apps/mcp/roborock/rust_src`.
 - [mqtt.rs:131]: `.spawn(move || run(opts, first, rx, worker_shared, on_unauthorized))`
 
 ## Verification
-- Run: `bazel test //apps/mcp/roborock/rust_src/...`
+- Run: `bazel test //apps/mcp/vitruvian-roborock-mcp/...`

@@ -1,4 +1,4 @@
-# vitruvian-roborock
+# Vitruvian Roborock MCP
 
 Local control of a Roborock vacuum for people and for AI agents. See the
 [README](../README.md) for installation and the command list.
@@ -35,7 +35,7 @@ It is one Rust binary, `rrctl`. The modules under `rust_src/`:
 
 | Module | Job |
 |---|---|
-| `config.rs` | Paths, the credentials file, migration from `~/.roborock`, the daemon token |
+| `config.rs` | Paths, the credentials file, and the daemon token |
 | `auth.rs` | The emailed-code login flow |
 | `cloud.rs` | The Roborock cloud HTTP API: region lookup, code login, home data, rooms |
 | `device.rs` | The vacuum: status snapshot, map, commands, room names |
@@ -61,7 +61,7 @@ The protocol is a port of [python-roborock](https://github.com/Python-roborock/p
 - **Login** asks the Roborock cloud which region serves the email address, then
   trades an emailed code for the account's IoT credentials.
 - **Discovery** fetches the account's home data (devices, models, rooms) once and
-  caches it in `~/.config/vitruvian/roborock/cache/home.json`.
+  caches it in `~/.config/vitruvian/roborock-mcp/cache/home.json`.
 - **Commands and status** go over the local network when the vacuum's address is
   known (asked once over MQTT, then cached), and over Roborock's MQTT broker
   otherwise. Both carry the same AES-encrypted V1 messages.
@@ -135,21 +135,16 @@ read the token file, and the credentials file beside it.
 
 ## Credentials
 
-Stored at `~/.config/vitruvian/roborock/credentials.json`, written `0600` through a
+Stored at `~/.config/vitruvian/roborock-mcp/credentials.json`, written `0600` through a
 temp file and an atomic rename so they are never briefly world-readable. The format
-wraps the login data the Roborock cloud returns (python-roborock's `UserData`), so
-logins made by the earlier Python version keep working.
-
-If that file is absent and `~/.roborock` (written by the upstream `roborock` CLI)
-holds a login, the login is copied across on first use. Only the login is copied,
-not the upstream cache, and `~/.roborock` is left untouched so the upstream CLI keeps working.
+wraps the login data the Roborock cloud returns.
 
 ## Not in Phase 1
 
 - **Only V1-protocol vacuums** (the S and Q series robots). Newer B01 models and the
   Dyad and Zeo appliances are detected and refused with a clear message.
 - **One vacuum at a time.** With several on an account, the first is used unless
-  `VITRUVIAN_ROBOROCK_DEVICE` names another.
+  `VITRUVIAN_ROBOROCK_MCP_DEVICE` names another.
 - **No zones, schedules, suction or water settings.**
 - **The MCP App dashboard is untested in a real host.** Served by the daemon, the
   dashboard uses plain HTTP. Embedded by an MCP host as `ui://dashboard`, it talks

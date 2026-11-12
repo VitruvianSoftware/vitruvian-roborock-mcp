@@ -1,6 +1,6 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
-  "name": "vitruvian-roborock",
+  "name": "vitruvian-roborock-mcp",
   "description": "Roborock vacuum integration, local daemon, MCP server, and plugins",
   "owner": {
     "name": "VitruvianSoftware",
@@ -8,7 +8,7 @@
   },
   "plugins": [
     {
-      "name": "vitruvian-roborock",
+      "name": "vitruvian-roborock-mcp",
       "source": "./plugin",
       "description": "Check on and control a Roborock vacuum: status, live map, start, pause, dock and mop wash.",
       "version": "0.2.0",

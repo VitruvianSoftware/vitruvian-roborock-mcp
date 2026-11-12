@@ -1,6 +1,6 @@
-# vitruvian-roborock
+# Vitruvian Roborock MCP
 
-![Vitruvian Roborock Banner](https://raw.githubusercontent.com/VitruvianSoftware/vitruvian-core/main/apps/mcp/roborock/docs/assets/hero.jpg)
+![Vitruvian Roborock MCP Banner](https://raw.githubusercontent.com/VitruvianSoftware/vitruvian-core/main/apps/mcp/vitruvian-roborock-mcp/docs/assets/hero.jpg)
 
 > **Autonomous agent control and real-time telemetry for Roborock vacuums.**
 > Check on and control your vacuum from a terminal (`rrctl`), from an AI agent (**Antigravity** and **Claude Code**), or from a live map in your browser.
@@ -28,24 +28,18 @@ The plugins start it as `rrctl mcp`, so put `rrctl` on your `PATH` first, one of
 these ways:
 
 - **Download it** from a [release](https://github.com/VitruvianSoftware/mcp-roborock/releases)
-  numbered 0.2.0 or later (macOS universal, Linux x86_64). Releases before
-  0.2.0 are the old Python package and have no `rrctl` binary. Check the
-  download against its `.sha256`, and put `rrctl` in a directory on your
-  `PATH`, such as `~/.local/bin`.
+  (macOS universal, Linux x86_64). Check the download against its `.sha256`,
+  and put `rrctl` in a directory on your `PATH`, such as `~/.local/bin`.
 - **Build it** with Rust installed:
   `cargo install --locked --git https://github.com/VitruvianSoftware/mcp-roborock`
-- **In the vitruvian-core monorepo:** `bazel build //apps/mcp/roborock:rrctl`,
-  then copy `bazel-bin/apps/mcp/roborock/rrctl` onto your `PATH`.
-
-Upgrading from the Python version (0.1.x, installed with `uv`)? Stop its
-daemon and uninstall it first; see
-[Switching from the Python version](docs/installation.md#switching-from-the-python-version-01x).
+- **In the vitruvian-core monorepo:** `bazel build //apps/mcp/vitruvian-roborock-mcp:rrctl`,
+  then copy `bazel-bin/apps/mcp/vitruvian-roborock-mcp/rrctl` onto your `PATH`.
 
 Claude Code:
 
 ```bash
 claude plugin marketplace add VitruvianSoftware/mcp-roborock
-claude plugin install vitruvian-roborock
+claude plugin install vitruvian-roborock-mcp
 ```
 
 Antigravity:
@@ -102,9 +96,9 @@ When installed as a plugin, your AI agent automatically gains two specialized sk
 
 ## Documentation
 
-- [Detailed Installation & User Guide](https://github.com/VitruvianSoftware/vitruvian-core/blob/main/apps/mcp/roborock/docs/installation.md)
-- [Architecture & Security Model](https://github.com/VitruvianSoftware/vitruvian-core/blob/main/apps/mcp/roborock/docs/index.md)
+- [Detailed Installation & User Guide](https://github.com/VitruvianSoftware/vitruvian-core/blob/main/apps/mcp/vitruvian-roborock-mcp/docs/installation.md)
+- [Architecture & Security Model](https://github.com/VitruvianSoftware/vitruvian-core/blob/main/apps/mcp/vitruvian-roborock-mcp/docs/index.md)
 
 ## Subdirectories & Boundaries
-- [rust_src](./rust_src/README.md): Component package providing implementation for apps/mcp/roborock/rust_src.
+- [rust_src](./rust_src/README.md): Component package providing implementation for apps/mcp/vitruvian-roborock-mcp/rust_src.
 

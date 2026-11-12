@@ -421,7 +421,7 @@
       }
     });
     async function run() {
-      await request("ui/initialize", { protocolVersion: "2026-01-26", appInfo: { name: "vitruvian-roborock", version: "0.1.0" }, appCapabilities: {} });
+      await request("ui/initialize", { protocolVersion: "2026-01-26", appInfo: { name: "vitruvian-roborock-mcp", version: "0.1.0" }, appCapabilities: {} });
       post({ method: "ui/notifications/initialized", params: {} });
       for (;;) {
         try { const status = statusFrom(await callTool("get_status")); if (status) render(status); }

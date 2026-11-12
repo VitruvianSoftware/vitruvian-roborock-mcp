@@ -278,7 +278,7 @@ mod tests {
                 config::credentials_path(),
                 home.join(".config")
                     .join("vitruvian")
-                    .join("roborock")
+                    .join("roborock-mcp")
                     .join("credentials.json")
             );
         });
@@ -289,7 +289,10 @@ mod tests {
         with_isolated_home(|home| {
             let xdg = home.join("xdg");
             env::set_var("XDG_CONFIG_HOME", &xdg);
-            assert_eq!(config::config_dir(), xdg.join("vitruvian").join("roborock"));
+            assert_eq!(
+                config::config_dir(),
+                xdg.join("vitruvian").join("roborock-mcp")
+            );
         });
     }
 
@@ -334,83 +337,6 @@ mod tests {
     fn test_no_login_anywhere_is_none_not_an_error() {
         with_isolated_home(|_| {
             assert_eq!(config::load_credentials().unwrap(), None);
-        });
-    }
-
-    #[test]
-    fn test_legacy_roborock_file_is_migrated_and_left_in_place() {
-        for key in ["userData", "user_data"] {
-            with_isolated_home(|_| {
-                let legacy = config::legacy_credentials_path();
-                let doc = json!({
-                    key: user_data(),
-                    "email": "me@example.com",
-                    "cacheData": {"homeData": {}}
-                });
-                let content = serde_json::to_string(&doc).unwrap();
-                fs::write(&legacy, &content).unwrap();
-
-                let loaded = config::load_credentials().unwrap().unwrap();
-                assert_eq!(loaded.email, "me@example.com");
-                assert_eq!(loaded.user_data, user_data());
-                assert_eq!(
-                    loaded.migrated_from.as_deref(),
-                    Some(legacy.to_string_lossy().as_ref())
-                );
-                assert_eq!(mode(&config::credentials_path()), 0o600);
-                let saved_text = fs::read_to_string(config::credentials_path()).unwrap();
-                assert!(
-                    !saved_text.contains("cacheData"),
-                    "only the login is copied, not the cache"
-                );
-                assert_eq!(fs::read_to_string(&legacy).unwrap(), content);
-            });
-        }
-    }
-
-    #[test]
-    fn test_existing_credentials_win_over_legacy_file() {
-        with_isolated_home(|_| {
-            save_test_login();
-            let legacy_doc = json!({"userData": user_data(), "email": "other@example.com"});
-            fs::write(
-                config::legacy_credentials_path(),
-                serde_json::to_string(&legacy_doc).unwrap(),
-            )
-            .unwrap();
-            let loaded = config::load_credentials().unwrap().unwrap();
-            assert_eq!(loaded.email, "me@example.com");
-        });
-    }
-
-    #[test]
-    fn test_unusable_legacy_file_is_ignored() {
-        let cases = [
-            "not json".to_string(),
-            "[]".to_string(),
-            serde_json::to_string(&json!({"email": "me@example.com"})).unwrap(),
-            serde_json::to_string(&json!({"userData": {"token": "x"}, "email": "me@example.com"}))
-                .unwrap(),
-        ];
-        for content in cases {
-            with_isolated_home(|_| {
-                fs::write(config::legacy_credentials_path(), &content).unwrap();
-                assert_eq!(config::load_credentials().unwrap(), None);
-                assert!(!config::credentials_path().exists());
-            });
-        }
-    }
-
-    #[test]
-    fn test_migration_can_be_switched_off() {
-        with_isolated_home(|_| {
-            let doc = json!({"userData": user_data(), "email": "me@example.com"});
-            fs::write(
-                config::legacy_credentials_path(),
-                serde_json::to_string(&doc).unwrap(),
-            )
-            .unwrap();
-            assert_eq!(config::load_credentials_with_options(false).unwrap(), None);
         });
     }
 
@@ -1394,7 +1320,7 @@ mod tests {
                     .unwrap()
                     .json()
                     .unwrap();
-                assert_eq!(health["service"], json!("vitruvian-roborock"));
+                assert_eq!(health["service"], json!("vitruvian-roborock-mcp"));
                 assert_eq!(health["ok"], json!(true));
                 assert!(!health.to_string().contains(TOKEN));
             });
@@ -1737,7 +1663,7 @@ mod tests {
                 .unwrap();
                 assert_eq!(
                     api.health().unwrap().get("service"),
-                    Some(&json!("vitruvian-roborock"))
+                    Some(&json!("vitruvian-roborock-mcp"))
                 );
                 assert_eq!(api.status().unwrap().get("battery"), Some(&json!(100)));
                 assert_eq!(api.map_png().unwrap().unwrap(), png_bytes());
@@ -2224,7 +2150,6 @@ mod tests {
         sent: Mutex<Vec<String>>,
         refuse: Mutex<Option<ClientError>>,
         health_doc: Mutex<Option<Map<String, Value>>>,
-        legacy_doc: Mutex<Option<Map<String, Value>>>,
         shutdowns: Mutex<usize>,
     }
 
@@ -2239,7 +2164,6 @@ mod tests {
                 sent: Mutex::new(Vec::new()),
                 refuse: Mutex::new(None),
                 health_doc: Mutex::new(None),
-                legacy_doc: Mutex::new(None),
                 shutdowns: Mutex::new(0),
             })
         }
@@ -2290,10 +2214,6 @@ mod tests {
         fn shutdown(&self) -> Result<Map<String, Value>, ClientError> {
             *self.shutdowns.lock().unwrap() += 1;
             Ok(json!({"ok": true}).as_object().unwrap().clone())
-        }
-
-        fn legacy_health(&self) -> Option<Map<String, Value>> {
-            self.legacy_doc.lock().unwrap().clone()
         }
     }
 
@@ -2581,10 +2501,10 @@ mod tests {
         }
     }
 
-    /// The plugin's launcher: run the Rust rrctl, or say plainly why not.
+    /// The plugin's launcher: run rrctl, or say plainly why not.
     fn launcher(config: &str) -> String {
         let doc: Value = serde_json::from_str(config).unwrap();
-        let server = &doc["mcpServers"]["roborock"];
+        let server = &doc["mcpServers"]["vitruvian-roborock-mcp"];
         assert_eq!(server["command"], "sh");
         assert_eq!(server["args"][0], "-c");
         server["args"][1].as_str().unwrap().to_string()
@@ -2620,7 +2540,7 @@ mod tests {
     }
 
     #[test]
-    fn test_the_launcher_runs_rust_rrctl_and_explains_anything_else() {
+    fn test_the_launcher_runs_rrctl_and_explains_when_missing() {
         let dir = env::temp_dir().join(format!(
             "rr-launcher-{}-{}",
             std::process::id(),
@@ -2631,20 +2551,7 @@ mod tests {
         let none = run_launcher(&dir);
         assert_eq!(none.status.code(), Some(127));
         assert!(String::from_utf8_lossy(&none.stderr).contains("rrctl is not on your PATH"));
-        // The old Python tool.
-        fake_rrctl(&dir, "rrctl 0.1.1");
-        let python = run_launcher(&dir);
-        assert_eq!(python.status.code(), Some(1));
-        let msg = String::from_utf8_lossy(&python.stderr).to_string();
-        assert!(
-            msg.contains("old Python tool") && msg.contains("uv tool uninstall vitruvian-roborock"),
-            "{msg}"
-        );
-        assert!(
-            python.stdout.is_empty(),
-            "must not start the Python MCP server"
-        );
-        // The Rust one.
+        // Installed.
         fake_rrctl(&dir, &format!("rrctl {VERSION} (rust)"));
         let rust = run_launcher(&dir);
         assert_eq!(rust.status.code(), Some(0));
@@ -2652,100 +2559,9 @@ mod tests {
         let _ = fs::remove_dir_all(dir);
     }
 
-    // =========================================================================
-    // Switching from the Python tool: its daemon answers on the same port with
-    // the same service name and token file.
-    // =========================================================================
-
-    fn python_health() -> Map<String, Value> {
-        json!({"ok": true, "service": "vitruvian-roborock", "version": "0.1.1", "pid": 4242})
-            .as_object()
-            .unwrap()
-            .clone()
-    }
-
-    /// A stand-in for the Python daemon: answers /healthz as it did.
-    fn fake_python_daemon() -> u16 {
-        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
-        let port = listener.local_addr().unwrap().port();
-        thread::spawn(move || {
-            for stream in listener.incoming().flatten().take(8) {
-                let mut stream = stream;
-                let mut reader = BufReader::new(stream.try_clone().unwrap());
-                let mut line = String::new();
-                while reader.read_line(&mut line).map(|n| n > 2).unwrap_or(false) {
-                    line.clear();
-                }
-                let body = Value::Object(python_health()).to_string();
-                let _ = write!(
-                    stream,
-                    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
-                    body.len(),
-                    body
-                );
-            }
-        });
-        port
-    }
-
     #[test]
-    fn test_the_python_daemon_is_recognised_and_not_reused() {
-        with_isolated_home(|_| {
-            let port = fake_python_daemon();
-            let client = DaemonClient::with_port(port, None);
-            assert!(
-                client.health().is_none(),
-                "the Python daemon must not count as ours"
-            );
-            assert_eq!(client.legacy_health().unwrap()["version"], "0.1.1");
-            let spawned = Arc::new(Mutex::new(false));
-            let flag = spawned.clone();
-            let err = crate::daemon::ensure_running_with_spawner(
-                Some(port),
-                Duration::from_secs(1),
-                move |_| {
-                    *flag.lock().unwrap() = true;
-                    Err(DaemonUnavailable::new("should not spawn"))
-                },
-            )
-            .err()
-            .expect("must refuse the Python daemon");
-            let msg = err.to_string();
-            assert!(msg.contains("older Python"), "{msg}");
-            assert!(
-                msg.contains("uv tool uninstall vitruvian-roborock"),
-                "{msg}"
-            );
-            assert!(msg.contains("pid 4242"), "{msg}");
-            assert!(!*spawned.lock().unwrap());
-        });
-    }
-
-    #[test]
-    fn test_our_daemon_says_it_is_the_rust_one() {
-        let doc = Value::Object(python_health());
-        assert!(!crate::daemon::legacy_daemon_message(8765, doc.as_object().unwrap()).is_empty());
+    fn test_version_identifies_rust_implementation() {
         let ver = run_cli(FakeCliClient::new(), &["--version"]);
         assert_eq!(ver.stdout, format!("rrctl {VERSION} (rust)\n"));
-    }
-
-    #[test]
-    fn test_daemon_commands_explain_the_python_daemon() {
-        let fake = FakeCliClient::new();
-        *fake.legacy_doc.lock().unwrap() = Some(python_health());
-        let status = run_cli(fake.clone(), &["daemon", "status"]);
-        assert_eq!(status.exit_code, 1);
-        assert!(status.stderr.contains("older Python"), "{}", status.stderr);
-        let run = run_cli(fake.clone(), &["daemon", "run"]);
-        assert_eq!(run.exit_code, 1);
-        assert!(run.stderr.contains("older Python"), "{}", run.stderr);
-        let stop = run_cli(fake.clone(), &["daemon", "stop"]);
-        assert_eq!(stop.exit_code, 0);
-        assert_eq!(*fake.shutdowns.lock().unwrap(), 1);
-        assert!(
-            stop.stdout.contains("uv tool uninstall vitruvian-roborock"),
-            "{}",
-            stop.stdout
-        );
     }
 }

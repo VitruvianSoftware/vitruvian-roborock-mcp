@@ -1,5 +1,5 @@
 {
-  "name": "vitruvian-roborock",
+  "name": "vitruvian-roborock-mcp",
   "version": "0.2.0",
   "description": "Check on and control a Roborock vacuum: status, live map, start, pause, dock and mop wash.",
   "author": {

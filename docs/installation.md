@@ -1,6 +1,6 @@
 # Installation & User Guide
 
-Welcome to the **Vitruvian Roborock** integration! This guide walks you through installing and using the plugin with **Antigravity**, **Claude Code**, or directly as a standalone **CLI (`rrctl`)**.
+Welcome to **Vitruvian Roborock MCP**! This guide walks you through installing and using the plugin with **Antigravity**, **Claude Code**, or directly as a standalone **CLI (`rrctl`)**.
 
 ---
 
@@ -18,25 +18,23 @@ The plugins start it as `rrctl mcp`, so put `rrctl` on your `PATH` first, one of
 these ways:
 
 - **Download it** from a [release](https://github.com/VitruvianSoftware/mcp-roborock/releases)
-  numbered 0.2.0 or later (macOS universal, Linux x86_64). Releases before
-  0.2.0 are the old Python package and have no `rrctl` binary. Check the
-  download against its `.sha256`, and put `rrctl` in a directory on your
-  `PATH`, such as `~/.local/bin`.
+  (macOS universal, Linux x86_64). Check the download against its `.sha256`,
+  and put `rrctl` in a directory on your `PATH`, such as `~/.local/bin`.
 - **Build it** with Rust installed:
   `cargo install --locked --git https://github.com/VitruvianSoftware/mcp-roborock`
-- **In the vitruvian-core monorepo:** `bazel build //apps/mcp/roborock:rrctl`,
-  then copy `bazel-bin/apps/mcp/roborock/rrctl` onto your `PATH`.
+- **In the vitruvian-core monorepo:** `bazel build //apps/mcp/vitruvian-roborock-mcp:rrctl`,
+  then copy `bazel-bin/apps/mcp/vitruvian-roborock-mcp/rrctl` onto your `PATH`.
 
 ### Option A: Claude Code
 
-Add our repository as a plugin marketplace and install `vitruvian-roborock`:
+Add our repository as a plugin marketplace and install `vitruvian-roborock-mcp`:
 
 ```bash
-# 1. Register the Vitruvian Roborock marketplace
+# 1. Register the Vitruvian Roborock MCP marketplace
 claude plugin marketplace add VitruvianSoftware/mcp-roborock
 
 # 2. Install the plugin
-claude plugin install vitruvian-roborock
+claude plugin install vitruvian-roborock-mcp
 ```
 
 Once installed, Claude Code has access to:
@@ -52,13 +50,13 @@ agy plugin install https://github.com/VitruvianSoftware/mcp-roborock
 ```
 
 No clone is needed: Antigravity finds the plugin in the repository's `plugin/`
-folder and installs it as `vitruvian-roborock`.
+folder and installs it as `vitruvian-roborock-mcp`.
 
 To verify the installation:
 ```bash
 agy plugin list
 ```
-You will see `vitruvian-roborock` listed with its skills and MCP server.
+You will see `vitruvian-roborock-mcp` listed with its skills and MCP server.
 
 ---
 
@@ -76,35 +74,6 @@ rrctl --help
 
 ---
 
-### Switching from the Python version (0.1.x)
-
-Up to 0.1.1 this was a Python package, installed with `uv tool install
-vitruvian-roborock`. That puts a Python `rrctl` in `~/.local/bin`, and its
-daemon uses the same port (8765) and token file as the Rust one. Until it is
-gone, an agent can keep running the Python version without anyone noticing. To
-switch:
-
-1. **Stop the Python daemon:** `rrctl daemon stop`.
-2. **Remove the Python tool:** `uv tool uninstall vitruvian-roborock`.
-3. **Install the Rust `rrctl`** in one of these ways:
-   - in the vitruvian-core monorepo:
-     `bazel build //apps/mcp/roborock:rrctl`, then
-     `install -m 755 bazel-bin/apps/mcp/roborock/rrctl ~/.local/bin/rrctl`;
-   - with Rust installed:
-     `cargo install --locked --git https://github.com/VitruvianSoftware/mcp-roborock`;
-   - or download a release binary (0.2.0 or later), as above.
-4. **Check it:** `rrctl --version` should print `rrctl 0.2.0 (rust)`.
-5. **Restart your agent sessions** (Claude Code, Antigravity), so their MCP
-   servers start again with the new binary.
-
-Your login carries over: both versions use
-`~/.config/vitruvian/roborock/credentials.json`. If you miss a step, the new
-version tells you. The Rust `rrctl` refuses to use a Python daemon it finds on
-port 8765. The plugin's launcher also refuses to start a Python `rrctl`, and
-says so if `rrctl` is not on your `PATH` at all.
-
----
-
 ## 3. First-Time Setup & Authentication
 
 Before commanding the vacuum, log in with your Roborock account:
@@ -115,9 +84,7 @@ rrctl setup
 ```
 1. Enter the email address linked to your Roborock account.
 2. Check your email for the 6-digit verification code sent by Roborock.
-3. Paste the code into the prompt. Credentials are saved securely to `~/.config/vitruvian/roborock/credentials.json` with strict `0600` permissions.
-
-*(Note: If you have previously used the upstream `roborock` CLI on your machine, your login in `~/.roborock` is automatically detected and migrated).*
+3. Paste the code into the prompt. Credentials are saved securely to `~/.config/vitruvian/roborock-mcp/credentials.json` with strict `0600` permissions.
 
 ### Via AI Agent
 Simply prompt your agent:
@@ -171,5 +138,5 @@ To clean specific rooms:
 ## 6. Architecture & Security
 
 - **Single Daemon Architecture**: One local daemon (`127.0.0.1:8765`) maintains the single session with the vacuum (supporting automatic LAN fallback for low-latency control) to respect Roborock cloud connection limits.
-- **Loopback Token Authentication**: All requests between the CLI/MCP server and the daemon require a 256-bit bearer token stored at `~/.config/vitruvian/roborock/daemon-token` (`mode 0600`).
+- **Loopback Token Authentication**: All requests between the CLI/MCP server and the daemon require a 256-bit bearer token stored at `~/.config/vitruvian/roborock-mcp/daemon-token` (`mode 0600`).
 - **No Cloud Relay**: Dashboard and agent interactions run 100% on your local machine.

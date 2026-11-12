@@ -285,7 +285,7 @@ pub struct McpServer {
 
 pub fn build_server(bridge: Option<Bridge>) -> McpServer {
     McpServer {
-        name: "vitruvian-roborock".to_string(),
+        name: "vitruvian-roborock-mcp".to_string(),
         version: crate::VERSION.to_string(),
         instructions: INSTRUCTIONS.to_string(),
         bridge: bridge.unwrap_or_default(),

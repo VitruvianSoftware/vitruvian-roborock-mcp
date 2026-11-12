@@ -19,7 +19,7 @@
 // SOFTWARE.
 // SPDX-License-Identifier: MIT
 
-//! Paths, credential storage, and legacy migration.
+//! Paths and credential storage.
 
 use serde_json::{Map, Value};
 use std::env;
@@ -34,9 +34,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 pub const DAEMON_HOST: &str = "127.0.0.1";
 pub const DEFAULT_DAEMON_PORT: u16 = 8765;
 
-pub const HOME_ENV: &str = "VITRUVIAN_ROBOROCK_HOME";
-pub const PORT_ENV: &str = "VITRUVIAN_ROBOROCK_PORT";
-pub const DEVICE_ENV: &str = "VITRUVIAN_ROBOROCK_DEVICE";
+pub const HOME_ENV: &str = "VITRUVIAN_ROBOROCK_MCP_HOME";
+pub const PORT_ENV: &str = "VITRUVIAN_ROBOROCK_MCP_PORT";
+pub const DEVICE_ENV: &str = "VITRUVIAN_ROBOROCK_MCP_DEVICE";
 
 pub const CREDENTIALS_VERSION: u32 = 1;
 const PRIVATE_FILE: u32 = 0o600;
@@ -84,7 +84,7 @@ pub fn config_dir() -> PathBuf {
         .ok()
         .filter(|s| !s.is_empty())
         .unwrap_or_else(|| "~/.config".to_string());
-    expand_tilde(&base).join("vitruvian").join("roborock")
+    expand_tilde(&base).join("vitruvian").join("roborock-mcp")
 }
 
 pub fn credentials_path() -> PathBuf {
@@ -101,10 +101,6 @@ pub fn cache_path() -> PathBuf {
 
 pub fn log_path() -> PathBuf {
     config_dir().join("daemon.log")
-}
-
-pub fn legacy_credentials_path() -> PathBuf {
-    expand_tilde("~/.roborock")
 }
 
 pub fn daemon_port() -> Result<u16, ConfigError> {
@@ -128,7 +124,6 @@ pub struct Credentials {
     pub email: String,
     pub user_data: Map<String, Value>,
     pub base_url: Option<String>,
-    pub migrated_from: Option<String>,
     pub extra: Map<String, Value>,
 }
 
@@ -138,7 +133,6 @@ impl Credentials {
             email: email.into(),
             user_data,
             base_url: None,
-            migrated_from: None,
             extra: Map::new(),
         }
     }
@@ -146,12 +140,6 @@ impl Credentials {
     pub fn with_base_url(mut self, base_url: impl Into<String>) -> Self {
         let s = base_url.into();
         self.base_url = if s.is_empty() { None } else { Some(s) };
-        self
-    }
-
-    pub fn with_migrated_from(mut self, migrated_from: impl Into<String>) -> Self {
-        let s = migrated_from.into();
-        self.migrated_from = if s.is_empty() { None } else { Some(s) };
         self
     }
 
@@ -166,14 +154,6 @@ impl Credentials {
         if let Some(ref base_url) = self.base_url {
             if !base_url.is_empty() {
                 doc.insert("base_url".to_string(), Value::from(base_url.clone()));
-            }
-        }
-        if let Some(ref migrated_from) = self.migrated_from {
-            if !migrated_from.is_empty() {
-                doc.insert(
-                    "migrated_from".to_string(),
-                    Value::from(migrated_from.clone()),
-                );
             }
         }
         Value::Object(doc)
@@ -200,18 +180,10 @@ impl Credentials {
             .and_then(|v| v.as_str())
             .filter(|s| !s.is_empty())
             .map(ToString::to_string);
-        let migrated_from = obj
-            .get("migrated_from")
-            .and_then(|v| v.as_str())
-            .filter(|s| !s.is_empty())
-            .map(ToString::to_string);
 
         let mut extra = Map::new();
         for (k, v) in obj {
-            if !matches!(
-                k.as_str(),
-                "version" | "email" | "user_data" | "base_url" | "migrated_from"
-            ) {
+            if !matches!(k.as_str(), "version" | "email" | "user_data" | "base_url") {
                 extra.insert(k.clone(), v.clone());
             }
         }
@@ -220,7 +192,6 @@ impl Credentials {
             email,
             user_data,
             base_url,
-            migrated_from,
             extra,
         })
     }
@@ -246,7 +217,7 @@ pub fn write_private(path: &Path, data: &[u8]) -> Result<(), ConfigError> {
     let file_name = path
         .file_name()
         .and_then(|n| n.to_str())
-        .unwrap_or("roborock");
+        .unwrap_or("roborock-mcp");
     let pid = std::process::id();
     let seq = TEMP_COUNTER.fetch_add(1, Ordering::Relaxed);
     let nanos = SystemTime::now()
@@ -298,10 +269,6 @@ pub fn save_credentials(credentials: &Credentials) -> Result<PathBuf, ConfigErro
 }
 
 pub fn load_credentials() -> Result<Option<Credentials>, ConfigError> {
-    load_credentials_with_options(true)
-}
-
-pub fn load_credentials_with_options(migrate: bool) -> Result<Option<Credentials>, ConfigError> {
     let path = credentials_path();
     if path.is_file() {
         tighten(&path);
@@ -311,51 +278,7 @@ pub fn load_credentials_with_options(migrate: bool) -> Result<Option<Credentials
             .map_err(|e| ConfigError::new(format!("cannot read {}: {e}", path.display())))?;
         return Credentials::from_json(&doc).map(Some);
     }
-    if migrate {
-        return migrate_legacy_credentials();
-    }
     Ok(None)
-}
-
-pub fn migrate_legacy_credentials() -> Result<Option<Credentials>, ConfigError> {
-    let legacy = legacy_credentials_path();
-    if !legacy.is_file() {
-        return Ok(None);
-    }
-    let text = match fs::read_to_string(&legacy) {
-        Ok(t) => t,
-        Err(_) => return Ok(None),
-    };
-    let doc: Value = match serde_json::from_str(&text) {
-        Ok(v) => v,
-        Err(_) => return Ok(None),
-    };
-    let obj = match doc.as_object() {
-        Some(o) => o,
-        None => return Ok(None),
-    };
-    let user_data = obj
-        .get("userData")
-        .or_else(|| obj.get("user_data"))
-        .and_then(|v| v.as_object());
-    let email = obj.get("email").and_then(|v| v.as_str());
-    let (user_data, email) = match (user_data, email) {
-        (Some(ud), Some(em)) if !em.is_empty() => (ud, em),
-        _ => return Ok(None),
-    };
-    let has_rriot = match user_data.get("rriot") {
-        Some(Value::Object(m)) => !m.is_empty(),
-        Some(Value::String(s)) => !s.is_empty(),
-        Some(Value::Bool(b)) => *b,
-        _ => false,
-    };
-    if !has_rriot {
-        return Ok(None);
-    }
-    let credentials = Credentials::new(email, user_data.clone())
-        .with_migrated_from(legacy.to_string_lossy().into_owned());
-    save_credentials(&credentials)?;
-    Ok(Some(credentials))
 }
 
 pub fn clear_credentials() -> bool {

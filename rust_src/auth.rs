@@ -135,7 +135,6 @@ pub struct AuthStatus {
     pub authenticated: bool,
     pub email: Option<String>,
     pub credentials_path: Option<String>,
-    pub migrated_from: Option<String>,
     pub error: Option<String>,
 }
 
@@ -154,11 +153,6 @@ impl AuthStatus {
         if let Some(ref path) = self.credentials_path {
             if !path.is_empty() {
                 doc.insert("credentials_path".to_string(), Value::String(path.clone()));
-            }
-        }
-        if let Some(ref migrated) = self.migrated_from {
-            if !migrated.is_empty() {
-                doc.insert("migrated_from".to_string(), Value::String(migrated.clone()));
             }
         }
         if let Some(ref error) = self.error {
@@ -183,21 +177,18 @@ pub fn auth_status() -> AuthStatus {
             authenticated: false,
             email: None,
             credentials_path: None,
-            migrated_from: None,
             error: Some(err.to_string()),
         },
         Ok(None) => AuthStatus {
             authenticated: false,
             email: None,
             credentials_path: None,
-            migrated_from: None,
             error: None,
         },
         Ok(Some(credentials)) => AuthStatus {
             authenticated: true,
             email: Some(credentials.email),
             credentials_path: Some(config::credentials_path().to_string_lossy().into_owned()),
-            migrated_from: credentials.migrated_from,
             error: None,
         },
     }

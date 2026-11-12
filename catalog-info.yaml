@@ -25,8 +25,8 @@
 apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
-  name: roborock
-  title: Roborock Vacuum Control
+  name: vitruvian-roborock-mcp
+  title: Vitruvian Roborock MCP
   description: Local daemon, CLI (rrctl) and MCP server for checking on and controlling a Roborock vacuum, with a live map dashboard and a Claude Code / Antigravity plugin.
   tags:
     - iot
@@ -40,13 +40,13 @@ metadata:
     vitruvian.dev/release-model: none
     vitruvian.dev/environments: development
   links:
-    - url: https://github.com/VitruvianSoftware/vitruvian-core/tree/main/apps/mcp/roborock
+    - url: https://github.com/VitruvianSoftware/vitruvian-core/tree/main/apps/mcp/vitruvian-roborock-mcp
       title: Source Tree
       icon: github
-    - url: https://github.com/VitruvianSoftware/vitruvian-core/blob/main/apps/mcp/roborock/README.md
+    - url: https://github.com/VitruvianSoftware/vitruvian-core/blob/main/apps/mcp/vitruvian-roborock-mcp/README.md
       title: Component Overview
       icon: docs
-    - url: https://github.com/VitruvianSoftware/vitruvian-core/blob/main/apps/mcp/roborock/docs/index.md
+    - url: https://github.com/VitruvianSoftware/vitruvian-core/blob/main/apps/mcp/vitruvian-roborock-mcp/docs/index.md
       title: Architecture and Security Model
       icon: docs
 spec:
